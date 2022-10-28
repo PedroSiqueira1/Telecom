@@ -1,6 +1,6 @@
 import speech_recognition
 
-
+# ATENÇÃO - ESSA FUNÇÃO FOI MOVIDA PARA MAIN
 def recognize_voice():
     recognizer = speech_recognition.Recognizer()
     with speech_recognition.Microphone() as src:

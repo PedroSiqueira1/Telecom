@@ -1,6 +1,6 @@
 import cv2
 
-
+# ATENÇÃO - ESSA FUNÇÃO FOI MOVIDA PARA MAIN
 def detect_edges(path):
 
         # Using cv2.imread() method
