@@ -5,6 +5,8 @@ import cv2
 import pyautogui
 import speech_recognition
 
+import getCoord
+
 
 # MACROS
 Sleep_time = 5
@@ -59,6 +61,7 @@ def define_board(path):
 def recognize_voice():
     recognizer = speech_recognition.Recognizer()
     with speech_recognition.Microphone() as src:
+        speech_to_txt = ""
         try:
             audio = recognizer.adjust_for_ambient_noise(src)
             print("Threshold Value After calibration:" + str(recognizer.energy_threshold))
@@ -99,10 +102,10 @@ def main():
     screenshot.save(Print_path)
     
     # get the position of the chessboard
-    board = detect_edges(Print_path)
-    print(board)
+    board_edges = detect_edges(Print_path)
+    print("board_edges:", board_edges)
 
-    positions = [] #elias
+    board_coord = getCoord.coordDictionary(board_edges)
     while True:
         time.sleep(Sleep_time)
 
@@ -118,13 +121,15 @@ def main():
                 break
             
             case "refresh":
-                board = [] #elias update the chessboard
+                board_edges = detect_edges(Print_path)
+                board_coord = getCoord.coordDictionary(board_edges)
 
             case "sleep":
                 time.sleep(Sleep_time)
 
             case "move":
                 print(action[1])
+                getCoord.movePiece(board_coord, action[1])
                 # elias - move(positions)
                 # move the piece
 
