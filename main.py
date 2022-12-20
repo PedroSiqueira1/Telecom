@@ -1,5 +1,7 @@
 import re
 import time
+from unidecode import unidecode
+from playsound import playsound
 
 import cv2
 import pyautogui
@@ -9,53 +11,50 @@ import getCoord
 
 
 # MACROS
-Sleep_time = 5
+Sleep_time = 3
 Print_path = r'./print.png'
 
 
 def detect_edges(path):
+    screenshot = pyautogui.screenshot()
+    screenshot.save(Print_path)
 
-        # Using cv2.imread() method
-        img = cv2.imread(path)
+    # Using cv2.imread() method
+    img = cv2.imread(path)
 
-        # Converting image to grayscale
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
+    # Converting image to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
 
-        # Applying GaussianBlur
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    # Applying GaussianBlur
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        # Applying Canny Edge detection
-        canny = cv2.Canny(blur, 50, 150)
+    # Applying Canny Edge detection
+    canny = cv2.Canny(blur, 50, 150)
 
-        # Finding contours
+    # Finding contours
+    contours, _ = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        contours, hierarchy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # Finding the biggest contour
+    biggest = None
+    max_area = 0
+    for i in contours:
+            area = cv2.contourArea(i)
+            if area > 100:
+                    peri = cv2.arcLength(i,True)
+                    approx = cv2.approxPolyDP(i,0.02*peri,True)
+                    if area > max_area and len(approx)==4:
+                            biggest = approx
+                            max_area = area
 
-        # Finding the biggest contour
-        biggest = None
-        max_area = 0
-        for i in contours:
-                area = cv2.contourArea(i)
-                if area > 100:
-                        peri = cv2.arcLength(i,True)
-                        approx = cv2.approxPolyDP(i,0.02*peri,True)
-                        if area > max_area and len(approx)==4:
-                                biggest = approx
-                                max_area = area
+    # Draw the biggest contour
+    cv2.drawContours(img, [biggest], -1, (0,255,0), 3)
 
-        # Draw the biggest contour
-        # cv2.drawContours(img, [biggest], -1, (0,255,0), 3)
-
-        # Displaying the image with contour
-        #cv2.imwrite('te.png', img)
-        #cv2.imshow('\Images\test4.png', img)
-        #cv2.waitKey()
-        return [biggest[0][0], biggest[2][0]]
-
-def define_board(path):
-    # get the position of the chessboard
-    board = detect_edges(path)
-    print(board)
+    # Displaying the image with contour
+    cv2.imwrite('te.png', img)
+    cv2.imshow('\Images\contour.png', img)
+    cv2.waitKey()
+    print(biggest)
+    return [biggest[0][0], biggest[2][0]]
 
 
 def recognize_voice():
@@ -65,9 +64,11 @@ def recognize_voice():
         try:
             audio = recognizer.adjust_for_ambient_noise(src)
             print("Threshold Value After calibration:" + str(recognizer.energy_threshold))
+            playsound(r'./sounds/ready.mp3')
             print("Please speak:")
             audio = recognizer.listen(src)
             speech_to_txt = recognizer.recognize_google(audio_data = audio, language ="pt-BR").lower()
+            speech_to_txt = unidecode(speech_to_txt) # remove accents
         except Exception as ex:
             print("Sorry. Could not understand.")
     return speech_to_txt
@@ -87,8 +88,12 @@ def nlp(speech):
         return ("end", None)
 
     else:
-        positions = re.findall(r"([a-h][1-8])", speech)
+        for replace in [("um", "1"), ("dois", "2"), ("tres", "3"), ("quatro", "4"), ("cinco", "5"), ("seis", "6"), ("sete", "7"), ("oito", "8")]:
+            speech = speech.replace(replace[0], replace[1])
+
+        positions = re.findall(r"(\s|^)([a-h] ?[1-8])", speech)
         if len(positions) > 0:
+            positions = [x[1].replace(" ", "") for x in positions]
             return ("move", positions)
         
         else:
@@ -97,9 +102,6 @@ def nlp(speech):
 
 def main():
     time.sleep(Sleep_time)
-    
-    screenshot = pyautogui.screenshot()
-    screenshot.save(Print_path)
     
     # get the position of the chessboard
     board_edges = detect_edges(Print_path)
@@ -125,7 +127,7 @@ def main():
                 board_coord = getCoord.coordDictionary(board_edges)
 
             case "sleep":
-                time.sleep(Sleep_time)
+                time.sleep(Sleep_time + 10)
 
             case "move":
                 print(action[1])
